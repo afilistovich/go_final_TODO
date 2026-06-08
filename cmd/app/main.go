@@ -2,10 +2,10 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/afilistovich/go_final_TODO/internal/db"
+	"github.com/afilistovich/go_final_TODO/internal/server"
 )
 
 const (
@@ -33,9 +33,11 @@ func main() {
 		port = "7540"
 	}
 
-	http.Handle("/", http.FileServer(http.Dir(webDir)))
-	err = http.ListenAndServe(":"+port, nil)
-	if err != nil {
-		log.Fatal(err)
+	logger := log.New(os.Stdout, "[SERVER] ", log.LstdFlags|log.Lshortfile)
+
+	srv := server.NewServer(port, webDir, logger)
+
+	if err = srv.Start(); err != nil {
+		logger.Fatalf("Server failed to start: %v", err)
 	}
 }
