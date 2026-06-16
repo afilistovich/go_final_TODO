@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -227,13 +228,9 @@ func lastDayOfMonth(t time.Time) int {
 	return firstOfNextMonth.AddDate(0, 0, -1).Day()
 }
 
-func nextDayHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 
-	nowStr := r.FormValue("now")
+	nowStr := r.URL.Query().Get("now")
 	var now time.Time
 	var err error
 
@@ -242,16 +239,17 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		now, err = time.Parse(DateLayout, nowStr)
 		if err != nil {
-			http.Error(w, "invalid 'now' parameter format, expected YYYYMMDD", http.StatusBadRequest)
+			writeError(w, "invalid 'now' parameter format, expected YYYYMMDD", http.StatusBadRequest)
 			return
 		}
 	}
-	date := r.FormValue("date")
-	repeat := r.FormValue("repeat")
+	date := r.URL.Query().Get("date")
+	repeat := r.URL.Query().Get("repeat")
 
 	result, err := NextDate(now, date, repeat)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		slog.Warn("NextDate calculation failed", "error", err, "date", date, "repeat", repeat)
+		writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

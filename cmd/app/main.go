@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/afilistovich/go_final_TODO/internal/db"
@@ -16,6 +16,10 @@ const (
 
 func main() {
 
+	opts := &slog.HandlerOptions{Level: slog.LevelInfo}
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	slog.SetDefault(slog.New(handler))
+
 	dbPath := os.Getenv(envDBFile)
 	if dbPath == "" {
 		dbPath = "scheduler.db"
@@ -23,7 +27,8 @@ func main() {
 
 	err := db.Init(dbPath)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to initialize database", "error", err)
+		os.Exit(1)
 	}
 
 	defer db.Close()
@@ -33,11 +38,11 @@ func main() {
 		port = "7540"
 	}
 
-	logger := log.New(os.Stdout, "[SERVER] ", log.LstdFlags|log.Lshortfile)
+	srv := server.NewServer(port, webDir)
 
-	srv := server.NewServer(port, webDir, logger)
-
+	slog.Info("Starting server", "port", port)
 	if err = srv.Start(); err != nil {
-		logger.Fatalf("Server failed to start: %v", err)
+		slog.Error("Server failed to start", "error", err)
+		os.Exit(1)
 	}
 }

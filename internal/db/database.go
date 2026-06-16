@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 
 	_ "modernc.org/sqlite"
@@ -9,7 +10,7 @@ import (
 
 const (
 	schema = `
-CREATE TABLE scheduler (
+CREATE TABLE IF NOT EXISTS scheduler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date CHAR(8) NOT NULL DEFAULT "",
     title VARCHAR(128) NOT NULL DEFAULT "",
@@ -17,28 +18,37 @@ CREATE TABLE scheduler (
     repeat VARCHAR(128) NOT NULL DEFAULT ""
     );
 
-CREATE INDEX idx_scheduler_date ON scheduler (date);
+CREATE INDEX IF NOT EXISTS idx_scheduler_date ON scheduler (date);
     `
 )
 
 var db *sql.DB
 
 func Init(dbFile string) error {
-	_, err := os.Stat(dbFile)
 	var install bool
+
+	_, err := os.Stat(dbFile)
 	if err != nil {
-		install = true
+		if os.IsNotExist(err) {
+			install = true
+		} else {
+			return fmt.Errorf("failed to check database file: %w", err)
+		}
 	}
 
 	db, err = sql.Open("sqlite", dbFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	if install {
 		_, err = db.Exec(schema)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create schema: %w", err)
 		}
 	}
 	return nil

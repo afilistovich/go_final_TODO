@@ -1,8 +1,15 @@
 package api
 
-import "net/http"
+import (
+	"github.com/go-chi/chi/v5"
+)
 
-func RegisterRoutes(mux *http.ServeMux) {
+func RegisterRoutes(r chi.Router) {
 
-	mux.HandleFunc("/api/nextdate", nextDayHandler)
+	r.Get("/api/nextdate", nextDateHandler)
+
+	r.Get("/api/tasks", getTasksHandler)
+
+	r.Post("/api/task", createTaskHandler)
+
 }
