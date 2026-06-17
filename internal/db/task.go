@@ -2,8 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 )
+
+var ErrTaskNotFound = errors.New("task not found")
 
 type Task struct {
 	ID      int64  `json:"id,string"`
@@ -96,4 +99,43 @@ func TasksByDate(date string, limit int) ([]*Task, error) {
 	}
 
 	return scanTasks(rows)
+}
+
+func GetTask(id int64) (*Task, error) {
+
+	query := `SELECT * FROM scheduler
+              WHERE id = ?`
+
+	row := db.QueryRow(query, id)
+	var t Task
+
+	err := row.Scan(&t.ID, &t.Date, &t.Title, &t.Comment, &t.Repeat)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrTaskNotFound
+		}
+		return nil, fmt.Errorf("query task: %w", err)
+	}
+
+	return &t, nil
+}
+
+func UpdateTask(task *Task) error {
+	query := `UPDATE scheduler
+              SET date = ?, title = ?, comment = ?, repeat = ?
+              WHERE id = ?`
+
+	res, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+	if err != nil {
+		return fmt.Errorf("update task: %w", err)
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get rows affected: %w", err)
+	}
+	if count == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
 }

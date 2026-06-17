@@ -10,6 +10,8 @@ func RegisterRoutes(r chi.Router) {
 
 	r.Get("/api/tasks", getTasksHandler)
 
+	r.Get("/api/task", getTaskHandler)
 	r.Post("/api/task", createTaskHandler)
+	r.Put("/api/task", updateTaskHandler)
 
 }
