@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/afilistovich/go_final_TODO/internal/calc"
 )
 
 var ErrTaskNotFound = errors.New("task not found")
@@ -19,12 +22,16 @@ type Task struct {
 func AddTask(t *Task) (int64, error) {
 	query := `INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)`
 	res, err := db.Exec(query, t.Date, t.Title, t.Comment, t.Repeat)
-
-	var id int64
-	if err == nil {
-		id, err = res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("add task: %w", err)
 	}
-	return id, err
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("get last insert id: %w", err)
+	}
+
+	return id, nil
 }
 
 func scanTasks(rows *sql.Rows) ([]*Task, error) {
@@ -138,4 +145,57 @@ func UpdateTask(task *Task) error {
 		return ErrTaskNotFound
 	}
 	return nil
+}
+
+func DeleteTask(id int64) error {
+	query := `DELETE FROM scheduler WHERE id = ?`
+
+	res, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("delete task: %w", err)
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get rows affected: %w", err)
+	}
+	if count == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
+}
+
+func UpdateDate(id int64, newDate string) error {
+	query := `UPDATE scheduler SET date = ? WHERE id = ?`
+	res, err := db.Exec(query, newDate, id)
+	if err != nil {
+		return fmt.Errorf("update date: %w", err)
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get rows affected: %w", err)
+	}
+	if count == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
+}
+
+func DoneTask(id int64) error {
+	task, err := GetTask(id)
+	if err != nil {
+		return err
+	}
+
+	if task.Repeat == "" {
+		return DeleteTask(id)
+	}
+
+	now := time.Now()
+	nextDate, err := calc.NextDate(now, task.Date, task.Repeat)
+	if err != nil {
+		return fmt.Errorf("calculate next date: %w", err)
+	}
+	return UpdateDate(id, nextDate)
 }

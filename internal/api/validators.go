@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/afilistovich/go_final_TODO/internal/calc"
 	"github.com/afilistovich/go_final_TODO/internal/db"
 )
 
@@ -13,20 +14,20 @@ func normalizeTaskDate(task *db.Task) error {
 	var next string
 
 	if task.Date == "" {
-		task.Date = now.Format(DateLayout)
+		task.Date = now.Format(calc.DateLayout)
 		return nil
 	}
 
-	t, err := time.Parse(DateLayout, task.Date)
+	t, err := time.Parse(calc.DateLayout, task.Date)
 	if err != nil {
 		return fmt.Errorf("invalid date format, expected YYYYMMDD")
 	}
 
 	if t.Before(now) {
 		if task.Repeat == "" {
-			task.Date = now.Format(DateLayout)
+			task.Date = now.Format(calc.DateLayout)
 		} else {
-			next, err = NextDate(now, task.Date, task.Repeat)
+			next, err = calc.NextDate(now, task.Date, task.Repeat)
 			if err != nil {
 				return fmt.Errorf("invalid repeat rule: %w", err)
 			}

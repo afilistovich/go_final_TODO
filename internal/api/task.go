@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/afilistovich/go_final_TODO/internal/db"
 )
@@ -50,21 +49,14 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		writeError(w, "id parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := parseID(r)
 	if err != nil {
-		slog.Warn("Failed to convert string", "error", err)
-		writeError(w, "invalid id format", http.StatusBadRequest)
+		slog.Warn("Failed to parse id", "error", err)
+		writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var task *db.Task
-	task, err = db.GetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		if errors.Is(err, db.ErrTaskNotFound) {
 			writeError(w, "Task not found", http.StatusNotFound)
@@ -118,7 +110,49 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("Task updated successfully", "task_id", task.ID, "title", task.Title)
 
-	if err = writeJSON(w, http.StatusOK, task); err != nil {
+	if err = writeJSON(w, http.StatusOK, struct{}{}); err != nil {
 		slog.Error("Failed to encode JSON response", "error", err)
 	}
+}
+
+func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		slog.Warn("Failed to parse id", "error", err)
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = db.DoneTask(id); err != nil {
+		if errors.Is(err, db.ErrTaskNotFound) {
+			writeError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("Failed to mark task as done", "error", err, "id", id)
+		writeError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	slog.Info("Task marked as done", "task_id", id)
+	writeJSON(w, http.StatusOK, struct{}{})
+}
+
+func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		slog.Warn("Failed to parse id", "error", err)
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = db.DeleteTask(id); err != nil {
+		if errors.Is(err, db.ErrTaskNotFound) {
+			writeError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("Database error while deleting task", "error", err, "id", id)
+		writeError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	slog.Info("Task deleted successfully", "task_id", id)
+	writeJSON(w, http.StatusOK, struct{}{})
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/afilistovich/go_final_TODO/internal/calc"
 	"github.com/afilistovich/go_final_TODO/internal/db"
 )
 
@@ -17,7 +18,7 @@ func getTasksHandler(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	var parsedDate string
 	if t, parseErr := time.Parse("02.01.2006", search); parseErr == nil {
-		parsedDate = t.Format(DateLayout)
+		parsedDate = t.Format(calc.DateLayout)
 	}
 
 	var tasks []*db.Task
