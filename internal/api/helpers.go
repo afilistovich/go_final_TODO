@@ -7,18 +7,21 @@ import (
 	"strconv"
 )
 
+// writeJSON sends JSON response with given status code
 func writeJSON(w http.ResponseWriter, status int, data any) error {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(data)
 }
 
+// writeError sends error message as JSON response
 func writeError(w http.ResponseWriter, msg string, status int) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
+// parseID extracts and validates id from query parameters
 func parseID(r *http.Request) (int64, error) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {

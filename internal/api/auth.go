@@ -15,15 +15,18 @@ import (
 
 const envPassword = "TODO_PASSWORD"
 
+// SignInRequest represents login request body
 type SignInRequest struct {
 	Password string `json:"password"`
 }
 
+// TokenClaims contains JWT claims with password hash
 type TokenClaims struct {
 	Hash string `json:"hash"`
 	jwt.RegisteredClaims
 }
 
+// auth is middleware that checks JWT token from cookie
 func auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pass := os.Getenv(envPassword)
@@ -45,11 +48,13 @@ func auth(next http.Handler) http.Handler {
 	})
 }
 
+// hashPassword returns SHA-256 hash of password as hex string
 func hashPassword(password string) string {
 	hash := sha256.Sum256([]byte(password))
 	return hex.EncodeToString(hash[:])
 }
 
+// generateJWT creates signed JWT token with 8h expiration
 func generateJWT(password string) (string, error) {
 	hash := hashPassword(password)
 	claims := TokenClaims{
@@ -67,6 +72,7 @@ func generateJWT(password string) (string, error) {
 	return signedToken, nil
 }
 
+// validateJWT checks if JWT token is valid and not expired
 func validateJWT(tokenStr string) (bool, error) {
 
 	password := os.Getenv(envPassword)
@@ -98,6 +104,7 @@ func validateJWT(tokenStr string) (bool, error) {
 	return true, nil
 }
 
+// signInHandler handles POST /api/signin - validates password and returns JWT
 func signInHandler(w http.ResponseWriter, r *http.Request) {
 	var req SignInRequest
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)

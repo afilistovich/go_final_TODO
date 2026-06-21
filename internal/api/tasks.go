@@ -13,10 +13,13 @@ type TaskResp struct {
 	Tasks []*db.Task `json:"tasks"`
 }
 
+// getTasksHandler handles GET /api/tasks - returns tasks with optional search filter
 func getTasksHandler(w http.ResponseWriter, r *http.Request) {
 
 	search := r.URL.Query().Get("search")
 	var parsedDate string
+
+	// Try to parse search as date in DD.MM.YYYY format
 	if t, parseErr := time.Parse("02.01.2006", search); parseErr == nil {
 		parsedDate = t.Format(calc.DateLayout)
 	}
@@ -24,6 +27,7 @@ func getTasksHandler(w http.ResponseWriter, r *http.Request) {
 	var tasks []*db.Task
 	var err error
 
+	// Choose query method based on search type
 	switch {
 	case search == "":
 		tasks, err = db.Tasks(50)

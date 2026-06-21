@@ -9,8 +9,10 @@ import (
 	"github.com/afilistovich/go_final_TODO/internal/calc"
 )
 
+// ErrTaskNotFound returned when task with given ID doesn't exist
 var ErrTaskNotFound = errors.New("task not found")
 
+// Task represents a single task in the scheduler
 type Task struct {
 	ID      int64  `json:"id,string"`
 	Date    string `json:"date"`
@@ -19,6 +21,7 @@ type Task struct {
 	Repeat  string `json:"repeat"`
 }
 
+// AddTask inserts new task into database and returns its ID
 func AddTask(t *Task) (int64, error) {
 	query := `INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)`
 	res, err := db.Exec(query, t.Date, t.Title, t.Comment, t.Repeat)
@@ -34,6 +37,7 @@ func AddTask(t *Task) (int64, error) {
 	return id, nil
 }
 
+// scanTasks scans multiple rows into Task slice
 func scanTasks(rows *sql.Rows) ([]*Task, error) {
 	defer rows.Close()
 
@@ -53,6 +57,7 @@ func scanTasks(rows *sql.Rows) ([]*Task, error) {
 	return tasks, nil
 }
 
+// Tasks returns all tasks sorted by date with limit
 func Tasks(limit int) ([]*Task, error) {
 	if limit <= 0 {
 		limit = 50
@@ -70,6 +75,7 @@ func Tasks(limit int) ([]*Task, error) {
 	return scanTasks(rows)
 }
 
+// TasksBySearch returns tasks matching search pattern in title or comment
 func TasksBySearch(search string, limit int) ([]*Task, error) {
 	if limit <= 0 {
 		limit = 50
@@ -90,6 +96,7 @@ func TasksBySearch(search string, limit int) ([]*Task, error) {
 	return scanTasks(rows)
 }
 
+// TasksByDate returns tasks for specific date
 func TasksByDate(date string, limit int) ([]*Task, error) {
 	if limit <= 0 {
 		limit = 50
@@ -108,6 +115,7 @@ func TasksByDate(date string, limit int) ([]*Task, error) {
 	return scanTasks(rows)
 }
 
+// GetTask returns single task by ID
 func GetTask(id int64) (*Task, error) {
 
 	query := `SELECT * FROM scheduler
@@ -127,6 +135,7 @@ func GetTask(id int64) (*Task, error) {
 	return &t, nil
 }
 
+// UpdateTask updates existing task fields
 func UpdateTask(task *Task) error {
 	query := `UPDATE scheduler
               SET date = ?, title = ?, comment = ?, repeat = ?
@@ -137,6 +146,7 @@ func UpdateTask(task *Task) error {
 		return fmt.Errorf("update task: %w", err)
 	}
 
+	// Check if task was actually updated
 	count, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("get rows affected: %w", err)
@@ -147,6 +157,7 @@ func UpdateTask(task *Task) error {
 	return nil
 }
 
+// DeleteTask removes task by ID
 func DeleteTask(id int64) error {
 	query := `DELETE FROM scheduler WHERE id = ?`
 
@@ -155,6 +166,7 @@ func DeleteTask(id int64) error {
 		return fmt.Errorf("delete task: %w", err)
 	}
 
+	// Check if task was actually deleted
 	count, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("get rows affected: %w", err)
@@ -165,6 +177,7 @@ func DeleteTask(id int64) error {
 	return nil
 }
 
+// UpdateDate changes task date
 func UpdateDate(id int64, newDate string) error {
 	query := `UPDATE scheduler SET date = ? WHERE id = ?`
 	res, err := db.Exec(query, newDate, id)
@@ -182,16 +195,19 @@ func UpdateDate(id int64, newDate string) error {
 	return nil
 }
 
+// DoneTask marks task as done: deletes if no repeat, or updates date to next occurrence
 func DoneTask(id int64) error {
 	task, err := GetTask(id)
 	if err != nil {
 		return err
 	}
 
+	// No repeat rule - delete task
 	if task.Repeat == "" {
 		return DeleteTask(id)
 	}
 
+	// Has repeat rule - calculate and set next date
 	now := time.Now()
 	nextDate, err := calc.NextDate(now, task.Date, task.Repeat)
 	if err != nil {

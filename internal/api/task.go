@@ -9,6 +9,7 @@ import (
 	"github.com/afilistovich/go_final_TODO/internal/db"
 )
 
+// createTaskHandler handles POST /api/task - creates new task
 func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 	var id int64
@@ -48,6 +49,7 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getTaskHandler handles GET /api/task?id=X - returns task by ID
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
@@ -72,6 +74,7 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateTaskHandler handles PUT /api/task - updates existing task
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
@@ -115,6 +118,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// doneTaskHandler handles POST /api/task/done?id=X - marks task as done
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
@@ -136,6 +140,7 @@ func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct{}{})
 }
 
+// deleteTaskHandler handles DELETE /api/task?id=X - deletes task
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
