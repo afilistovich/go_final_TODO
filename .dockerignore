@@ -1,0 +1,14 @@
+.git/
+.github/
+.idea/
+*.db
+*.sqlite
+tests/
+scheduler.exe
+scheduler
+README.md
+Dockerfile
+.dockerignore
+*.test
+*.out
+coverage.html
